@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import time
-import watchdog
 from datetime import datetime
 from pathlib import Path
 from utils.file_utils import json_read_file, json_write_file
