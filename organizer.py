@@ -2,7 +2,7 @@ import argparse
 import logging
 import os
 import shutil
-import time
+import signal
 from datetime import datetime
 from pathlib import Path
 from utils.file_utils import json_read_file, json_write_file
@@ -24,13 +24,17 @@ class WatchFile:
         self.event_handler = Handler(self.path, self.data)
         self.observer.schedule(self.event_handler, self.path, recursive=True)
         self.observer.start()
+
+        logging.debug("Observer running. Press Ctrl+C to stop.")
+
         try:
-            while True:
-                time.sleep(5)
-        except KeyboardInterrupt as k:
+            # This blocks the main thread efficiently until a signal (like SIGINT) is caught
+            signal.pause() 
+        except KeyboardInterrupt:
+            pass
+        finally:
             self.observer.stop()
-            logging.debug(f"AUTO WATCHER IS STOPPED: {k}")
-        self.observer.join()
+            self.observer.join()
 
 
 
@@ -102,7 +106,7 @@ class Handler(FileSystemEventHandler):
                 if extension in key:
                     os.makedirs(values, exist_ok=True)
                     shutil.move(file, values)
-        
+
         logging.debug("FILES ARE(NEW):")
         for file in self.folder_path.rglob('*'):
             if file.is_file():
@@ -125,15 +129,10 @@ def main():
     data = json_read_file(BACKUPS_PATH)  
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--path", type=str)
+    parser.add_argument("--path", type=str, required=True)
     parser.add_argument("--watch", action="store_true")
     parser.add_argument("--logs", action="store_true")
-    parser.add_argument("--hierarchi")
     args = parser.parse_args()
-
-    if args.path:
-        logging.debug("ARGS_PATH IS WORKING")
-        Handler(args.path, data).find_hierarchi()
 
     if args.logs:
         logging.basicConfig(
@@ -147,6 +146,8 @@ def main():
     if args.watch:
         logging.debug("--AUTO ORGANIZER IS WORKING BACKGROUND NOW--")
         WatchFile(args.path, data).run()
+    else:
+        Handler(args.path, data).find_hierarchi()
 
 
 if __name__ == "__main__":
